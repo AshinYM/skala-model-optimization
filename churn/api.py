@@ -282,11 +282,15 @@ def create_app(model_path=None):
     def health():
         return {'status': 'ok'}
 
-    @app.get('/ready', response_model=ReadyResponse, responses={503: {'model': ErrorResponse}})
+    @app.get('/ready', response_model=ReadyResponse,
+             responses={503: {'model': ErrorResponse, 'description': 'Model unavailable'}})
     def readiness():
         return {'status': 'ready', 'model': ready().info}
 
-    failures = {code: {'model': ErrorResponse} for code in [400, 413, 422, 500, 503]}
+    descriptions = {400: 'Malformed request', 413: 'Request body too large',
+                    422: 'Request validation failed', 500: 'Model inference failed', 503: 'Model unavailable'}
+    failures = {code: {'model': ErrorResponse, 'description': description}
+                for code, description in descriptions.items()}
 
     @app.post('/api/v1/scores', response_model=ScoresResponse, responses=failures,
               description='Score any subset. Does not select contact targets or allocate a contact budget.')

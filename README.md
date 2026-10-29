@@ -159,7 +159,7 @@ mlflow ui --backend-store-uri sqlite:///artifacts/mlflow/tracking.db --host 127.
 
 이번 실행의 공개 집계 검증: [reports/mlflow-verification.json](reports/mlflow-verification.json).
 
-- MLflow 설치 환경에서 **검사 12개 통과**, integration 검사 생략 0개. Tracking 의존성이 없으면 기본·경로 검사 9개만 실행하고 MLflow 통합 검사 3개는 생략합니다.
+- MLflow 설치 환경에서 **검사 12개 통과**, integration 검사 생략 0개. 선택 의존성이 없으면 해당 API/MLflow 검사는 명시적으로 생략합니다.
 - 교육 데이터 실험에서 후보 실행 5개 + 최종 실행 1개, 후보의 Test 지표 기록 0개를 확인했습니다. 기존 v2와 최종 Test 집계 지표도 일치했습니다.
 - 아티팩트·Registry 복원 및 별도 Python 프로세스 재검증의 최대 점수 차이는 **0.0**이었습니다. 합성 입력의 직렬화 일치 검사이며 미래 고객 성능을 증명하지 않습니다.
 - MLflow UI와 실험 목록 조회의 HTTP 200을 확인했습니다. MLflow 검증 환경은 로컬 macOS/ARM64, Python 3.14.7입니다. 기존 v2 학습 결과의 Python 3.11 환경과 구분합니다.
@@ -169,7 +169,7 @@ mlflow ui --backend-store-uri sqlite:///artifacts/mlflow/tracking.db --host 127.
 
 ## 개인 고도화 3 — FastAPI 점수화·고객군 선정 API
 
-저장된 모델을 로컬 HTTP 서비스로 연결했습니다. 이 단계는 API와 테스트까지이며, Docker Compose·Vue 화면·외부 공개 배포는 아직 추가하지 않았습니다.
+저장된 모델을 로컬 HTTP 서비스로 연결했습니다. 아래는 API를 Python으로 직접 실행하는 방법이며, Docker Compose 실행은 다음 절을 참고합니다. Vue 화면·외부 공개 배포는 아직 추가하지 않았습니다.
 
 ### 실행과 호출
 
@@ -212,10 +212,100 @@ python -m churn.api_check --url http://127.0.0.1:8061 --model artifacts/api-demo
 
 검증기는 합성 고객 23명만 보내고 로컬 Pipeline과 HTTP 결과를 비교합니다. 버전·임계값·연락 예산·전체 순위·부분 고객군 거부·오류 값 비노출·OpenAPI 조회 등 11개 검사를 수행합니다. 출력은 집계 결과이며 개별 고객 점수를 저장하지 않습니다. 본인이 만든 모델만 검증에 사용합니다.
 
-[API 검증 집계](reports/api-verification.json): API 검사 13개와 기존 검사를 합쳐 **25개 통과, 생략 0개**. 저장된 XGBoost 모델을 실제 로컬 서버에 로드해 HTTP 검사 11개도 통과했고 점수의 최대 차이는 **0.0**이었습니다. API만 설치하면 MLflow 통합 검사 3개는 생략되며 나머지 22개를 실행합니다.
+[API 검증 집계](reports/api-verification.json): API 검사 13개와 기존 검사를 합쳐 **25개 통과, 생략 0개**. 저장된 XGBoost 모델을 실제 로컬 서버에 로드해 HTTP 검사 11개도 통과했고 점수의 최대 차이는 **0.0**이었습니다. API만 설치하면 MLflow 통합 검사 3개는 생략합니다.
 
 입력 검사는 중복 ID·필수 필드·유한 숫자·유효 날짜·플래그·크기 제한을 포함합니다. null과 처음 보는 범주는 Pipeline의 결측값·인코딩 처리로 연결합니다. Surname·Exited·추가 필드는 거부하고 오류에 입력 값·예외 원문·모델 경로를 노출하지 않습니다. 모델 추론 실패를 성공 응답으로 바꾸지 않습니다. 본문은 실제 수신 바이트까지 2 MiB로 제한하며 chunked 전송도 검사합니다.
 
 model_version은 로드한 파일의 SHA-256으로 실제 실행 아티팩트를 구분하며 MLflow Registry 버전 번호와는 다릅니다. 서버는 로컬 모델만 읽고 원격 Registry나 외부 API를 호출하지 않습니다. 모델 업로드·재학습·입력/출력 저장·본문 로깅은 제공하지 않습니다. 인증 없는 로컬 개인용 API이므로 localhost에만 바인딩하며 공용망 노출·인증·부하 용량은 검증하지 않았습니다. 실제 이탈 확률 보정이나 캠페인 효과도 보장하지 않습니다.
 
 참고: [FastAPI lifespan](https://fastapi.tiangolo.com/advanced/events/), [오류 처리](https://fastapi.tiangolo.com/tutorial/handling-errors/), [Pydantic strict mode](https://docs.pydantic.dev/latest/concepts/strict_mode/).
+
+
+## 개인 고도화 4 — Docker Compose와 상태 복구
+
+API와 MLflow를 같은 이미지·같은 상태 볼륨으로 실행합니다. **기본 구성은 합성 데모 전용**이며, 앞에서 금융 교육 데이터로 학습한 호스트 모델을 자동 복사하거나 운영 모델로 배포하지 않습니다. 실제 금융 데이터 성능과 합성 데모 성능을 구분합니다.
+
+### 첫 실행
+
+Docker와 Compose를 준비한 뒤 프로젝트 루트에서:
+
+```bash
+docker compose up -d --build --wait --wait-timeout 180
+docker compose ps
+```
+
+- API와 Swagger: `http://127.0.0.1:8061/docs`
+- MLflow: `http://127.0.0.1:5055` → `compose-demo` 실험
+
+최초 이미지 빌드에는 패키지 다운로드가 필요합니다. 첫 초기화는 고정 seed의 합성 고객 1,000명을 생성해 기존 후보 비교·최종 평가·MLflow 등록을 한 번 수행합니다. 이후 같은 볼륨에서는 모델 해시와 Registry 복원을 확인하고 재학습하지 않습니다. 불완전하거나 변조된 상태를 발견하면 기존 파일을 덮어쓰지 않고 실패합니다. 초기화가 성공해야 API와 MLflow가 시작됩니다.
+
+포트가 사용 중이면 호스트 포트만 바꿀 수 있습니다.
+
+```bash
+CHURN_API_PORT=8062 CHURN_MLFLOW_PORT=5056 docker compose up -d --build --wait
+```
+
+컨테이너의 `0.0.0.0` 리스닝은 Docker 내부용이고, 호스트 공개 포트는 IPv4 localhost로만 바인딩합니다. 표준 Compose 네트워크를 사용하며 별도의 외부 통신 차단 정책은 구현하지 않습니다. 모델·LLM API·클라우드·GPU는 외부 서비스로 호출하지 않습니다.
+
+### 서비스와 저장 공간
+
+| 서비스 | 역할 | 상태 접근 |
+|---|---|---|
+| init | 합성 데모 초기화 또는 기존 상태 검증, 완료 후 종료 | /state 읽기·쓰기 |
+| api | /ready 기반 healthcheck, 점수화·고객군 선정 | /state 읽기 전용 |
+| mlflow | 실험·모델 조회, DB 조회 기반 healthcheck | /state 읽기·쓰기 |
+
+`churn-state` named volume에 데이터·모델·MLflow DB·아티팩트를 함께 저장합니다. 모든 컨테이너에서 경로를 `/state`로 유지해 MLflow의 로컬 아티팩트 URI가 일치하게 합니다. API는 `/state/runs/demo-v1/model.joblib`만 읽습니다. Registry 별칭 변경이나 새 학습이 API 모델 교체로 자동 이어지지 않습니다.
+
+이미지는 소스·명세·합성 예제·테스트와 의존성만 포함합니다. `.git`·`.env`·원본 CSV·호스트 모델·백업은 빌드 컨텍스트에서 제외합니다. UID 10001의 일반 사용자, 읽기 전용 루트 파일시스템, 서비스별 CPU 2개·메모리 2GiB 상한을 사용합니다. 이는 자원 사용 상한이며 성능 SLA가 아닙니다.
+
+```bash
+docker compose exec -T api python -m churn.api_check --model /state/runs/demo-v1/model.joblib
+docker compose run --rm -T --no-deps --pull never init python -m unittest discover -s tests -v
+```
+
+실행·상태를 끝내려면 `docker compose down`을 사용합니다. **`down -v`는 모델과 실험 기록이 든 볼륨까지 삭제**하므로 보관할 상태에는 사용하지 않습니다. 깨진 초기화를 자동으로 지우거나 재학습하지 않습니다.
+
+### 중지 후 백업
+
+호스트 Python 3.11 이상에서 실행하는 보조 명령입니다. Docker 이미지를 먼저 빌드해야 하며 명령이 임의의 원격 이미지를 pull하지 않도록 설정했습니다.
+
+```bash
+docker compose stop
+python -m churn.compose_ops backup --archive backups/churn-state-20261029.tar.gz
+```
+
+Compose 프로젝트에 실행 중인 컨테이너가 있으면 거부합니다. 초기화와 백업/복구 사이에는 파일 잠금도 사용합니다. 일관된 SQLite·파일 스냅샷을 위해 모든 쓰기 프로세스를 먼저 중지해야 합니다. Compose 밖에서 같은 볼륨에 쓰는 프로세스까지 자동 탐지하는 것은 아닙니다.
+
+백업은 모델·DB·아티팩트·입력 파일을 포함하며 `backups/`는 Git에서 제외합니다. 호스트 파일은 0600으로 생성하고 기존 파일은 덮어쓰지 않습니다. 암호화 기능은 없으므로 신뢰 가능한 로컬 위치에 보관하고 외부에 공개하지 않습니다. 이 데모 도구의 복구 한도는 전체 파일 합계·manifest 기준 128MiB, 최대 10,000개 파일입니다.
+
+### 새 볼륨에 복원
+
+기존 상태에 덮어쓰지 않도록 다른 프로젝트 이름을 사용합니다. 원본 프로젝트는 중지해 둡니다. 원본과 복원 프로젝트를 동시에 실행하려면 서로 다른 호스트 포트가 필요합니다.
+
+```bash
+python -m churn.compose_ops restore --project-name churn-restored --archive backups/churn-state-20261029.tar.gz
+docker compose -p churn-restored up -d --wait --wait-timeout 180
+docker compose -p churn-restored exec -T api python -m churn.api_check --model /state/runs/demo-v1/model.joblib
+```
+
+복원 대상 볼륨은 비어 있어야 합니다. 파일별 SHA-256을 확인한 뒤 상태를 반영하며, 경로 이탈·링크·중복 항목·체크섬 불일치를 거부합니다. `/state` 마운트 경로와 같은 앱/MLflow 버전을 유지해야 합니다. 다른 버전으로의 DB 마이그레이션·임의 경로 재작성은 검증하지 않았습니다. 모델 직렬화가 포함되어 있으므로 본인이 만든 신뢰 가능한 백업만 복원합니다.
+
+프로젝트 이름을 직접 지정해 실행했다면 백업에도 같은 이름을 전달합니다.
+
+```bash
+python -m churn.compose_ops backup --project-name churn-restored --archive backups/restored-copy.tar.gz
+```
+
+### 이번 검증 결과
+
+[reports/compose-verification.json](reports/compose-verification.json)에 개인별 값·로컬 run ID·모델 파일 해시를 제외한 집계만 공개했습니다.
+
+- macOS 호스트 Python 3.14와 Linux ARM64/Python 3.11 컨테이너에서 **검사 34개 통과**, 생략 0개.
+- 두 서비스의 healthcheck, 호스트 API/UI 접속, 일반 사용자·localhost 포트·읽기 전용 API 상태 볼륨을 확인했습니다.
+- 컨테이너 재생성 후 모델·실험 6개·등록 버전 1개가 유지됐고 초기화가 재학습 없이 재사용됐습니다.
+- 서비스를 중지하고 백업한 뒤 **별도 프로젝트의 새 볼륨에 복원**했습니다. 모델·실험·Registry와 SQLite 무결성이 원본과 같았습니다.
+- 복원 후 실제 API 검사 11개 통과, 같은 합성 입력의 점수 차이 **0.0**을 확인했습니다.
+- Python 버전별 기본 HTTP 오류 설명 차이는 명시적 OpenAPI 설명으로 고정했습니다. AMD64·공용 배포·인증·운영 부하는 검증하지 않았습니다.
+
+참고: [Compose 시작 순서](https://docs.docker.com/compose/how-tos/startup-order/), [Docker volumes](https://docs.docker.com/engine/storage/volumes/).

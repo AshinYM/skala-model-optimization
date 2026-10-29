@@ -1,0 +1,12 @@
+**
+!Dockerfile
+!requirements*.txt
+!churn/
+!churn/*.py
+!api/
+!api/openapi.json
+!api/contract.md
+!api/examples/
+!api/examples/*.json
+!tests/
+!tests/*.py

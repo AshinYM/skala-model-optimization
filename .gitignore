@@ -22,3 +22,6 @@ mlartifacts/
 *.db
 *.db-shm
 *.db-wal
+backups/
+*.tar.gz
+*.tgz

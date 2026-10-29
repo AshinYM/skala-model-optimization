@@ -40,7 +40,7 @@
             }
           },
           "503": {
-            "description": "Service Unavailable",
+            "description": "Model unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -79,7 +79,7 @@
             }
           },
           "400": {
-            "description": "Bad Request",
+            "description": "Malformed request",
             "content": {
               "application/json": {
                 "schema": {
@@ -89,7 +89,7 @@
             }
           },
           "413": {
-            "description": "Content Too Large",
+            "description": "Request body too large",
             "content": {
               "application/json": {
                 "schema": {
@@ -99,7 +99,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable Content",
+            "description": "Request validation failed",
             "content": {
               "application/json": {
                 "schema": {
@@ -109,7 +109,7 @@
             }
           },
           "500": {
-            "description": "Internal Server Error",
+            "description": "Model inference failed",
             "content": {
               "application/json": {
                 "schema": {
@@ -119,7 +119,7 @@
             }
           },
           "503": {
-            "description": "Service Unavailable",
+            "description": "Model unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -158,7 +158,7 @@
             }
           },
           "400": {
-            "description": "Bad Request",
+            "description": "Malformed request",
             "content": {
               "application/json": {
                 "schema": {
@@ -168,7 +168,7 @@
             }
           },
           "413": {
-            "description": "Content Too Large",
+            "description": "Request body too large",
             "content": {
               "application/json": {
                 "schema": {
@@ -178,7 +178,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable Content",
+            "description": "Request validation failed",
             "content": {
               "application/json": {
                 "schema": {
@@ -188,7 +188,7 @@
             }
           },
           "500": {
-            "description": "Internal Server Error",
+            "description": "Model inference failed",
             "content": {
               "application/json": {
                 "schema": {
@@ -198,7 +198,7 @@
             }
           },
           "503": {
-            "description": "Service Unavailable",
+            "description": "Model unavailable",
             "content": {
               "application/json": {
                 "schema": {

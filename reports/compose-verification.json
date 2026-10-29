@@ -1,0 +1,36 @@
+{
+  "data_origin": "synthetic",
+  "container_platform": "Linux ARM64 / Python 3.11",
+  "host_python": "3.11.15",
+  "host_tests_passed": 34,
+  "container_tests_passed": 34,
+  "skipped_tests": 0,
+  "api_http_checks_passed": 11,
+  "api_max_abs_score_error": 0.0,
+  "host_api_and_ui_http_200": true,
+  "container_recreation_preserves_model_and_registry": true,
+  "fresh_volume_restore_preserves_model_and_registry": true,
+  "initialization_reused_without_retraining": true,
+  "mlflow_runs": 6,
+  "registered_model_versions": 1,
+  "sqlite_integrity": "ok",
+  "backup_file_permissions": "0600",
+  "running_service_backup_blocked": true,
+  "ports_bound_to_loopback": true,
+  "runtime_uid": 10001,
+  "api_state_volume_read_only": true,
+  "root_filesystems_read_only": true,
+  "host_data_secrets_models_excluded_from_image": true,
+  "external_cloud_resources_created": false,
+  "not_verified": [
+    "AMD64 execution",
+    "public deployment",
+    "authentication",
+    "production load capacity",
+    "cross-version MLflow state migration"
+  ],
+  "core_only_environment": {
+    "passed": 16,
+    "optional_tests_skipped": 18
+  }
+}

@@ -1,0 +1,63 @@
+x-common: &common
+  image: skala-churn:local
+  build: .
+  init: true
+  read_only: true
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=256m
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  cpus: 2
+  mem_limit: 2g
+  stop_grace_period: 30s
+
+services:
+  init:
+    <<: *common
+    command: ["python", "-m", "churn.bootstrap", "--state-dir", "/state"]
+    volumes:
+      - churn-state:/state
+    restart: "no"
+
+  api:
+    <<: *common
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    command: ["python", "-m", "uvicorn", "churn.api:app", "--host", "0.0.0.0", "--port", "8061", "--workers", "1", "--no-access-log"]
+    environment:
+      CHURN_MODEL_PATH: /state/runs/demo-v1/model.joblib
+    volumes:
+      - churn-state:/state:ro
+    ports:
+      - "127.0.0.1:${CHURN_API_PORT:-8061}:8061"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8061/ready', timeout=4).read()"]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 6
+
+  mlflow:
+    <<: *common
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    command: ["python", "-m", "mlflow", "ui", "--backend-store-uri", "sqlite:////state/mlflow/tracking.db", "--default-artifact-root", "file:///state/mlflow/artifacts", "--host", "0.0.0.0", "--port", "5055", "--workers", "1"]
+    volumes:
+      - churn-state:/state
+    ports:
+      - "127.0.0.1:${CHURN_MLFLOW_PORT:-5055}:5055"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5055/api/2.0/mlflow/experiments/search?max_results=1', timeout=4).read()"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 6
+
+volumes:
+  churn-state:
