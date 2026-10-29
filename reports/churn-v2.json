@@ -1,0 +1,379 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-29T08:20:42.142194+00:00",
+  "dataset_sha256": "3eead26803f258671ad3e212ec71767ff16f31c8bb133fcaced90377a0af9772",
+  "seed": 42,
+  "split": {
+    "train": 1260,
+    "validation": 420,
+    "test": 420,
+    "strategy": "stratified 60/20/20, one snapshot per customer"
+  },
+  "selection_rule": "validation precision_at_budget DESC, average_precision DESC, roc_auc DESC, name ASC",
+  "threshold_rule": "validation F2 maximum; ties choose highest threshold; frozen before final refit",
+  "selected_model": "xgboost_fe",
+  "validation_candidates": [
+    {
+      "model": "xgboost_fe",
+      "rows": 420,
+      "positives": 90,
+      "prevalence": 0.21428571428571427,
+      "roc_auc": 0.877070707070707,
+      "average_precision": 0.71943266138472,
+      "threshold": 0.5,
+      "precision": 0.7333333333333333,
+      "recall": 0.4888888888888889,
+      "f2": 0.5238095238095238,
+      "confusion_matrix": [
+        [
+          314,
+          16
+        ],
+        [
+          46,
+          44
+        ]
+      ],
+      "contact_fraction": 0.1,
+      "contacted": 42,
+      "captured_churners": 34,
+      "precision_at_budget": 0.8095238095238095,
+      "recall_at_budget": 0.37777777777777777,
+      "lift_at_budget": 3.777777777777778,
+      "random_expected_captured": 9.0
+    },
+    {
+      "model": "rf_shallow_fe",
+      "rows": 420,
+      "positives": 90,
+      "prevalence": 0.21428571428571427,
+      "roc_auc": 0.841919191919192,
+      "average_precision": 0.6433274611091032,
+      "threshold": 0.5,
+      "precision": 0.5714285714285714,
+      "recall": 0.7111111111111111,
+      "f2": 0.6779661016949152,
+      "confusion_matrix": [
+        [
+          282,
+          48
+        ],
+        [
+          26,
+          64
+        ]
+      ],
+      "contact_fraction": 0.1,
+      "contacted": 42,
+      "captured_churners": 32,
+      "precision_at_budget": 0.7619047619047619,
+      "recall_at_budget": 0.35555555555555557,
+      "lift_at_budget": 3.5555555555555554,
+      "random_expected_captured": 9.0
+    },
+    {
+      "model": "rf_fe",
+      "rows": 420,
+      "positives": 90,
+      "prevalence": 0.21428571428571427,
+      "roc_auc": 0.8548484848484849,
+      "average_precision": 0.6487116219322882,
+      "threshold": 0.5,
+      "precision": 0.6703296703296703,
+      "recall": 0.6777777777777778,
+      "f2": 0.6762749445676275,
+      "confusion_matrix": [
+        [
+          300,
+          30
+        ],
+        [
+          29,
+          61
+        ]
+      ],
+      "contact_fraction": 0.1,
+      "contacted": 42,
+      "captured_churners": 31,
+      "precision_at_budget": 0.7380952380952381,
+      "recall_at_budget": 0.34444444444444444,
+      "lift_at_budget": 3.4444444444444446,
+      "random_expected_captured": 9.0
+    },
+    {
+      "model": "rf_baseline",
+      "rows": 420,
+      "positives": 90,
+      "prevalence": 0.21428571428571427,
+      "roc_auc": 0.86003367003367,
+      "average_precision": 0.6339689436614244,
+      "threshold": 0.5,
+      "precision": 0.65625,
+      "recall": 0.7,
+      "f2": 0.6907894736842105,
+      "confusion_matrix": [
+        [
+          297,
+          33
+        ],
+        [
+          27,
+          63
+        ]
+      ],
+      "contact_fraction": 0.1,
+      "contacted": 42,
+      "captured_churners": 30,
+      "precision_at_budget": 0.7142857142857143,
+      "recall_at_budget": 0.3333333333333333,
+      "lift_at_budget": 3.3333333333333335,
+      "random_expected_captured": 9.0
+    },
+    {
+      "model": "logistic_fe",
+      "rows": 420,
+      "positives": 90,
+      "prevalence": 0.21428571428571427,
+      "roc_auc": 0.7726936026936028,
+      "average_precision": 0.5014109369540778,
+      "threshold": 0.5,
+      "precision": 0.5428571428571428,
+      "recall": 0.2111111111111111,
+      "f2": 0.24050632911392406,
+      "confusion_matrix": [
+        [
+          314,
+          16
+        ],
+        [
+          71,
+          19
+        ]
+      ],
+      "contact_fraction": 0.1,
+      "contacted": 42,
+      "captured_churners": 22,
+      "precision_at_budget": 0.5238095238095238,
+      "recall_at_budget": 0.24444444444444444,
+      "lift_at_budget": 2.4444444444444446,
+      "random_expected_captured": 9.0
+    }
+  ],
+  "selected_validation": {
+    "rows": 420,
+    "positives": 90,
+    "prevalence": 0.21428571428571427,
+    "roc_auc": 0.877070707070707,
+    "average_precision": 0.71943266138472,
+    "threshold": 0.17847028374671936,
+    "precision": 0.5202702702702703,
+    "recall": 0.8555555555555555,
+    "f2": 0.7578740157480315,
+    "confusion_matrix": [
+      [
+        259,
+        71
+      ],
+      [
+        13,
+        77
+      ]
+    ],
+    "contact_fraction": 0.1,
+    "contacted": 42,
+    "captured_churners": 34,
+    "precision_at_budget": 0.8095238095238095,
+    "recall_at_budget": 0.37777777777777777,
+    "lift_at_budget": 3.777777777777778,
+    "random_expected_captured": 9.0
+  },
+  "final_test": {
+    "rows": 420,
+    "positives": 89,
+    "prevalence": 0.2119047619047619,
+    "roc_auc": 0.8567840048881495,
+    "average_precision": 0.6788676134890275,
+    "threshold": 0.17847028374671936,
+    "precision": 0.4430379746835443,
+    "recall": 0.7865168539325843,
+    "f2": 0.6809338521400778,
+    "confusion_matrix": [
+      [
+        243,
+        88
+      ],
+      [
+        19,
+        70
+      ]
+    ],
+    "contact_fraction": 0.1,
+    "contacted": 42,
+    "captured_churners": 34,
+    "precision_at_budget": 0.8095238095238095,
+    "recall_at_budget": 0.38202247191011235,
+    "lift_at_budget": 3.8202247191011236,
+    "random_expected_captured": 8.9
+  },
+  "test_bootstrap_95_percent": {
+    "roc_auc": {
+      "low": 0.8139775031758094,
+      "high": 0.8997854211102785,
+      "resamples": 300
+    },
+    "average_precision": {
+      "low": 0.5805804281020277,
+      "high": 0.7663872156658617,
+      "resamples": 300
+    },
+    "lift_at_budget": {
+      "low": 3.21593028964163,
+      "high": 4.590876436781609,
+      "resamples": 300
+    }
+  },
+  "test_contact_budget_curve": [
+    {
+      "rows": 420,
+      "positives": 89,
+      "prevalence": 0.2119047619047619,
+      "roc_auc": 0.8567840048881495,
+      "average_precision": 0.6788676134890275,
+      "threshold": 0.17847028374671936,
+      "precision": 0.4430379746835443,
+      "recall": 0.7865168539325843,
+      "f2": 0.6809338521400778,
+      "confusion_matrix": [
+        [
+          243,
+          88
+        ],
+        [
+          19,
+          70
+        ]
+      ],
+      "contact_fraction": 0.05,
+      "contacted": 21,
+      "captured_churners": 17,
+      "precision_at_budget": 0.8095238095238095,
+      "recall_at_budget": 0.19101123595505617,
+      "lift_at_budget": 3.8202247191011236,
+      "random_expected_captured": 4.45
+    },
+    {
+      "rows": 420,
+      "positives": 89,
+      "prevalence": 0.2119047619047619,
+      "roc_auc": 0.8567840048881495,
+      "average_precision": 0.6788676134890275,
+      "threshold": 0.17847028374671936,
+      "precision": 0.4430379746835443,
+      "recall": 0.7865168539325843,
+      "f2": 0.6809338521400778,
+      "confusion_matrix": [
+        [
+          243,
+          88
+        ],
+        [
+          19,
+          70
+        ]
+      ],
+      "contact_fraction": 0.1,
+      "contacted": 42,
+      "captured_churners": 34,
+      "precision_at_budget": 0.8095238095238095,
+      "recall_at_budget": 0.38202247191011235,
+      "lift_at_budget": 3.8202247191011236,
+      "random_expected_captured": 8.9
+    },
+    {
+      "rows": 420,
+      "positives": 89,
+      "prevalence": 0.2119047619047619,
+      "roc_auc": 0.8567840048881495,
+      "average_precision": 0.6788676134890275,
+      "threshold": 0.17847028374671936,
+      "precision": 0.4430379746835443,
+      "recall": 0.7865168539325843,
+      "f2": 0.6809338521400778,
+      "confusion_matrix": [
+        [
+          243,
+          88
+        ],
+        [
+          19,
+          70
+        ]
+      ],
+      "contact_fraction": 0.2,
+      "contacted": 84,
+      "captured_churners": 50,
+      "precision_at_budget": 0.5952380952380952,
+      "recall_at_budget": 0.5617977528089888,
+      "lift_at_budget": 2.808988764044944,
+      "random_expected_captured": 17.8
+    }
+  ],
+  "audit": [
+    {
+      "phase": "candidate",
+      "model": "logistic_fe",
+      "fit": "train",
+      "evaluate": "validation"
+    },
+    {
+      "phase": "candidate",
+      "model": "rf_baseline",
+      "fit": "train",
+      "evaluate": "validation"
+    },
+    {
+      "phase": "candidate",
+      "model": "rf_fe",
+      "fit": "train",
+      "evaluate": "validation"
+    },
+    {
+      "phase": "candidate",
+      "model": "rf_shallow_fe",
+      "fit": "train",
+      "evaluate": "validation"
+    },
+    {
+      "phase": "candidate",
+      "model": "xgboost_fe",
+      "fit": "train",
+      "evaluate": "validation"
+    },
+    {
+      "phase": "refit",
+      "model": "xgboost_fe",
+      "fit": "train+validation"
+    },
+    {
+      "phase": "final_evaluation",
+      "model": "xgboost_fe",
+      "evaluate": "test",
+      "prediction_calls": 1
+    }
+  ],
+  "environment": {
+    "python": "3.11.15",
+    "numpy": "2.4.6",
+    "pandas": "3.0.5",
+    "scikit-learn": "1.9.1",
+    "joblib": "1.6.0",
+    "xgboost": "3.2.0"
+  },
+  "limitations": [
+    "Retrospective educational data already explored in prior notebooks; not a pristine external holdout.",
+    "One split, small validation contact cohort; model selection can be unstable.",
+    "Bootstrap intervals condition on fixed predictions and do not include training/selection uncertainty.",
+    "Scores are not calibrated probabilities or causal retention effects.",
+    "Budget curves are descriptive; do not retune the policy using test results."
+  ]
+}
