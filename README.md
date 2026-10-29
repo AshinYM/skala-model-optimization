@@ -165,3 +165,57 @@ mlflow ui --backend-store-uri sqlite:///artifacts/mlflow/tracking.db --host 127.
 - MLflow UI와 실험 목록 조회의 HTTP 200을 확인했습니다. MLflow 검증 환경은 로컬 macOS/ARM64, Python 3.14.7입니다. 기존 v2 학습 결과의 Python 3.11 환경과 구분합니다.
 
 참고: [MLflow Tracking](https://mlflow.org/docs/latest/ml/tracking/quickstart/), [sklearn 모델 저장](https://mlflow.org/docs/latest/api_reference/python_api/mlflow.sklearn.html), [Model Registry](https://mlflow.org/docs/latest/ml/model-registry/workflow/), [telemetry 설정](https://mlflow.org/docs/latest/community/usage-tracking/).
+
+
+## 개인 고도화 3 — FastAPI 점수화·고객군 선정 API
+
+저장된 모델을 로컬 HTTP 서비스로 연결했습니다. 이 단계는 API와 테스트까지이며, Docker Compose·Vue 화면·외부 공개 배포는 아직 추가하지 않았습니다.
+
+### 실행과 호출
+
+```bash
+python -m pip install -r requirements-api.txt
+python -m churn.train train --data data/demo.csv --output artifacts/api-demo
+CHURN_MODEL_PATH=artifacts/api-demo/model.joblib uvicorn churn.api:app --host 127.0.0.1 --port 8061 --workers 1 --no-access-log
+```
+
+`data/demo.csv`가 없으면 앞 절의 `churn.demo` 명령으로 생성합니다. 실제로 준비한 모델을 쓰려면 `CHURN_MODEL_PATH`만 해당 로컬 bundle 경로로 지정합니다. MLflow 설치·서버가 없어도 API가 동작합니다. 모델은 시작할 때 한 번만 읽고 실행 중에는 바뀌지 않으며, 교체 후 재시작해야 합니다. 경로가 없거나 모델이 잘못되면 프로세스는 살아 있지만 준비 상태·점수화는 503을 반환합니다.
+
+Swagger UI: `http://127.0.0.1:8061/docs`. 별도 터미널에서:
+
+```bash
+curl http://127.0.0.1:8061/health
+curl http://127.0.0.1:8061/ready
+curl -X POST http://127.0.0.1:8061/api/v1/scores -H 'Content-Type: application/json' --data-binary @api/examples/scores.json
+curl -X POST http://127.0.0.1:8061/api/v1/contact-selections -H 'Content-Type: application/json' --data-binary @api/examples/cohort.json
+```
+
+예제 JSON은 직접 생성한 합성 고객이며 실제 고객 정보가 아닙니다. API 계약은 [api/contract.md](api/contract.md), OpenAPI는 [api/openapi.json](api/openapi.json)입니다. OpenAPI 파일은 Postman에도 가져올 수 있습니다. 코드 변경 후 `python -m churn.api --export-openapi api/openapi.json`으로 갱신하며 테스트가 저장된 계약과의 차이를 확인합니다.
+
+| 기능 | 의미 |
+|---|---|
+| /health | 프로세스 생존 상태 |
+| /ready | 신뢰 가능한 모델의 로드·출력 검사 완료 여부 |
+| /api/v1/scores | 1~1,000명 점수·risk_flag 반환. 부분 배치 가능, 연락 대상 선정 없음 |
+| /api/v1/contact-selections | 1~5,000명의 완전한 **선언된** 고객군을 한 번에 제출해 연락 대상 선정 |
+
+scores의 risk_flag는 저장된 F2 임계값 기준이며, contact_selected와 다릅니다. 선정 API는 모델에 저장된 연락 비율을 사용하고 요청에서 바꿀 수 없습니다. 예상 고객 수가 실제 전달 수와 다르면 거부하며, 상위 floor(N × 비율)명을 선택합니다. 동점은 CustomerId 오름차순으로 처리해 입력 행 순서가 바뀌어도 선정 결과가 같습니다. 기존 CLI는 동점에서 입력 순서를 사용하므로 그 규칙과 구분합니다.
+
+서버는 고객군을 보관하거나 여러 요청을 합치지 않고 업무 DB의 실제 전체 고객 수도 알지 못합니다. expected_customer_count는 호출자의 선언을 검증하는 것이며 실제 모집단 완전성을 보증하지 않습니다. 5,000명보다 큰 고객군을 여러 선정 요청으로 나누면 전체 예산 선정이 되지 않으므로 별도 스냅샷·분할 업로드 설계가 필요합니다. cohort_id는 저장·중복 방지 키가 아닙니다.
+
+### 검증과 운영 범위
+
+```bash
+python -m unittest discover -s tests -v
+python -m churn.api_check --url http://127.0.0.1:8061 --model artifacts/api-demo/model.joblib --output artifacts/api-live-check.json
+```
+
+검증기는 합성 고객 23명만 보내고 로컬 Pipeline과 HTTP 결과를 비교합니다. 버전·임계값·연락 예산·전체 순위·부분 고객군 거부·오류 값 비노출·OpenAPI 조회 등 11개 검사를 수행합니다. 출력은 집계 결과이며 개별 고객 점수를 저장하지 않습니다. 본인이 만든 모델만 검증에 사용합니다.
+
+[API 검증 집계](reports/api-verification.json): API 검사 13개와 기존 검사를 합쳐 **25개 통과, 생략 0개**. 저장된 XGBoost 모델을 실제 로컬 서버에 로드해 HTTP 검사 11개도 통과했고 점수의 최대 차이는 **0.0**이었습니다. API만 설치하면 MLflow 통합 검사 3개는 생략되며 나머지 22개를 실행합니다.
+
+입력 검사는 중복 ID·필수 필드·유한 숫자·유효 날짜·플래그·크기 제한을 포함합니다. null과 처음 보는 범주는 Pipeline의 결측값·인코딩 처리로 연결합니다. Surname·Exited·추가 필드는 거부하고 오류에 입력 값·예외 원문·모델 경로를 노출하지 않습니다. 모델 추론 실패를 성공 응답으로 바꾸지 않습니다. 본문은 실제 수신 바이트까지 2 MiB로 제한하며 chunked 전송도 검사합니다.
+
+model_version은 로드한 파일의 SHA-256으로 실제 실행 아티팩트를 구분하며 MLflow Registry 버전 번호와는 다릅니다. 서버는 로컬 모델만 읽고 원격 Registry나 외부 API를 호출하지 않습니다. 모델 업로드·재학습·입력/출력 저장·본문 로깅은 제공하지 않습니다. 인증 없는 로컬 개인용 API이므로 localhost에만 바인딩하며 공용망 노출·인증·부하 용량은 검증하지 않았습니다. 실제 이탈 확률 보정이나 캠페인 효과도 보장하지 않습니다.
+
+참고: [FastAPI lifespan](https://fastapi.tiangolo.com/advanced/events/), [오류 처리](https://fastapi.tiangolo.com/tutorial/handling-errors/), [Pydantic strict mode](https://docs.pydantic.dev/latest/concepts/strict_mode/).

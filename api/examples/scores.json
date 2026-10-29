@@ -1,0 +1,32 @@
+{
+  "customers": [
+    {
+      "CustomerId": 1,
+      "CreditScore": 555,
+      "Geography": "B",
+      "Gender": "A",
+      "Age": 70,
+      "Balance": 62847.62624357654,
+      "NumOfProducts": 3,
+      "HasCrCard": 0,
+      "IsActiveMember": 1,
+      "EstimatedSalary": 119584.72439061677,
+      "baseDate": "2026-01-01",
+      "accountOpeningDate": "2022-08-24"
+    },
+    {
+      "CustomerId": 2,
+      "CreditScore": 608,
+      "Geography": "B",
+      "Gender": "B",
+      "Age": 29,
+      "Balance": 113409.95167288979,
+      "NumOfProducts": 1,
+      "HasCrCard": 1,
+      "IsActiveMember": 0,
+      "EstimatedSalary": 28802.866880670277,
+      "baseDate": "2026-01-01",
+      "accountOpeningDate": "2023-07-27"
+    }
+  ]
+}

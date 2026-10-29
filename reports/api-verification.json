@@ -1,0 +1,32 @@
+{
+  "checks": {
+    "liveness": true,
+    "readiness": true,
+    "model_version_matches_file": true,
+    "scores_match_local_pipeline": true,
+    "score_operation_does_not_select_contacts": true,
+    "threshold_policy_matches": true,
+    "cohort_budget_respected": true,
+    "global_rank_selection_matches": true,
+    "partial_declared_cohort_rejected": true,
+    "invalid_input_sanitized": true,
+    "openapi_available": true
+  },
+  "checks_passed": 11,
+  "synthetic_customers": 23,
+  "model_name": "xgboost_fe",
+  "max_abs_score_error": 0.0,
+  "customer_records_saved": false,
+  "external_services_called": false,
+  "api_tests_passed": 13,
+  "total_tests_passed": 25,
+  "skipped_tests": 0,
+  "python": "3.11.15",
+  "scope": "TestClient edge/failure tests and live localhost HTTP with saved XGBoost; synthetic inputs only",
+  "not_verified": [
+    "public deployment",
+    "authentication",
+    "load capacity",
+    "real cohort completeness against an external business database"
+  ]
+}

@@ -1,0 +1,701 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Bank Churn Scoring API",
+    "description": "Local-only scoring and complete-declared-cohort selection. No customer storage, model upload or automatic deployment.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "summary": "Readiness",
+        "operationId": "readiness_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/scores": {
+      "post": {
+        "summary": "Scores",
+        "description": "Score any subset. Does not select contact targets or allocate a contact budget.",
+        "operationId": "scores_api_v1_scores_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScoresRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoresResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Content Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/contact-selections": {
+      "post": {
+        "summary": "Selections",
+        "description": "Submit one complete declared cohort, not chunks. Expected count must match. No cross-request aggregation or storage.",
+        "operationId": "selections_api_v1_contact_selections_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CohortRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SelectionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Content Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CohortRequest": {
+        "properties": {
+          "cohort_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "title": "Cohort Id"
+          },
+          "expected_customer_count": {
+            "type": "integer",
+            "maximum": 5000.0,
+            "minimum": 1.0,
+            "title": "Expected Customer Count"
+          },
+          "customers": {
+            "items": {
+              "$ref": "#/components/schemas/Customer"
+            },
+            "type": "array",
+            "maxItems": 5000,
+            "minItems": 1,
+            "title": "Customers"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "cohort_id",
+          "expected_customer_count",
+          "customers"
+        ],
+        "title": "CohortRequest"
+      },
+      "Customer": {
+        "properties": {
+          "CustomerId": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Customerid"
+          },
+          "CreditScore": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Creditscore"
+          },
+          "Age": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age"
+          },
+          "Balance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Balance"
+          },
+          "NumOfProducts": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numofproducts"
+          },
+          "HasCrCard": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hascrcard"
+          },
+          "IsActiveMember": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Isactivemember"
+          },
+          "EstimatedSalary": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimatedsalary"
+          },
+          "Geography": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Geography"
+          },
+          "Gender": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
+          "baseDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basedate"
+          },
+          "accountOpeningDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accountopeningdate"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "CustomerId",
+          "CreditScore",
+          "Age",
+          "Balance",
+          "NumOfProducts",
+          "HasCrCard",
+          "IsActiveMember",
+          "EstimatedSalary",
+          "Geography",
+          "Gender",
+          "baseDate",
+          "accountOpeningDate"
+        ],
+        "title": "Customer"
+      },
+      "ErrorBody": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "details": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorDetail"
+            },
+            "type": "array",
+            "title": "Details"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorBody"
+      },
+      "ErrorDetail": {
+        "properties": {
+          "field": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Field"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "field",
+          "type"
+        ],
+        "title": "ErrorDetail"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "ErrorResponse"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "HealthResponse"
+      },
+      "ModelInfo": {
+        "properties": {
+          "model_name": {
+            "type": "string",
+            "title": "Model Name"
+          },
+          "model_version": {
+            "type": "string",
+            "title": "Model Version"
+          },
+          "schema_version": {
+            "type": "integer",
+            "title": "Schema Version"
+          },
+          "threshold": {
+            "type": "number",
+            "title": "Threshold"
+          },
+          "contact_fraction": {
+            "type": "number",
+            "title": "Contact Fraction"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "model_name",
+          "model_version",
+          "schema_version",
+          "threshold",
+          "contact_fraction"
+        ],
+        "title": "ModelInfo"
+      },
+      "ReadyResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ready",
+            "title": "Status"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ModelInfo"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "model"
+        ],
+        "title": "ReadyResponse"
+      },
+      "ScoreRow": {
+        "properties": {
+          "CustomerId": {
+            "type": "integer",
+            "title": "Customerid"
+          },
+          "churn_score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Churn Score"
+          },
+          "risk_flag": {
+            "type": "boolean",
+            "title": "Risk Flag"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "CustomerId",
+          "churn_score",
+          "risk_flag"
+        ],
+        "title": "ScoreRow"
+      },
+      "ScoresRequest": {
+        "properties": {
+          "customers": {
+            "items": {
+              "$ref": "#/components/schemas/Customer"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Customers"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "customers"
+        ],
+        "title": "ScoresRequest"
+      },
+      "ScoresResponse": {
+        "properties": {
+          "model": {
+            "$ref": "#/components/schemas/ModelInfo"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "scores": {
+            "items": {
+              "$ref": "#/components/schemas/ScoreRow"
+            },
+            "type": "array",
+            "title": "Scores"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "model",
+          "count",
+          "scores"
+        ],
+        "title": "ScoresResponse"
+      },
+      "SelectionResponse": {
+        "properties": {
+          "model": {
+            "$ref": "#/components/schemas/ModelInfo"
+          },
+          "cohort_id": {
+            "type": "string",
+            "title": "Cohort Id"
+          },
+          "cohort_size": {
+            "type": "integer",
+            "title": "Cohort Size"
+          },
+          "selected_count": {
+            "type": "integer",
+            "title": "Selected Count"
+          },
+          "tie_breaker": {
+            "type": "string",
+            "const": "CustomerId ascending",
+            "title": "Tie Breaker"
+          },
+          "selection_scope": {
+            "type": "string",
+            "const": "complete declared cohort in this request",
+            "title": "Selection Scope"
+          },
+          "selections": {
+            "items": {
+              "$ref": "#/components/schemas/SelectionRow"
+            },
+            "type": "array",
+            "title": "Selections"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "model",
+          "cohort_id",
+          "cohort_size",
+          "selected_count",
+          "tie_breaker",
+          "selection_scope",
+          "selections"
+        ],
+        "title": "SelectionResponse"
+      },
+      "SelectionRow": {
+        "properties": {
+          "CustomerId": {
+            "type": "integer",
+            "title": "Customerid"
+          },
+          "churn_score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Churn Score"
+          },
+          "risk_flag": {
+            "type": "boolean",
+            "title": "Risk Flag"
+          },
+          "rank": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Rank"
+          },
+          "contact_selected": {
+            "type": "boolean",
+            "title": "Contact Selected"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "CustomerId",
+          "churn_score",
+          "risk_flag",
+          "rank",
+          "contact_selected"
+        ],
+        "title": "SelectionRow"
+      }
+    }
+  }
+}
