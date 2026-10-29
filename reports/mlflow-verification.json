@@ -1,0 +1,25 @@
+{
+  "mlflow_version": "3.16.0",
+  "candidate_runs": 5,
+  "final_runs": 1,
+  "candidate_test_metric_count": 0,
+  "artifact_roundtrip_max_abs_error": 0.0,
+  "registry_roundtrip_max_abs_error": 0.0,
+  "probe_rows": 8,
+  "probe_kind": "synthetic",
+  "raw_customer_samples_logged": false,
+  "model_registered": true,
+  "automatic_deployment": false,
+  "telemetry_disabled": true,
+  "tests": {
+    "passed": 12,
+    "integration_tests_skipped": 0
+  },
+  "environment": {
+    "python": "3.11.15",
+    "mlflow": "3.16.0"
+  },
+  "ui_http_status": 200,
+  "experiment_api_http_status": 200,
+  "fresh_process_roundtrip_max_abs_error": 0.0
+}

@@ -44,7 +44,8 @@ def candidates(seed):
     }
 
 
-def run(data, output, seed=42, fraction=0.1, model_candidates=None, dataset_sha256=None):
+def run(data, output, seed=42, fraction=0.1, model_candidates=None, dataset_sha256=None,
+        tracking_dir=None, experiment='bank-churn'):
     validate_training(data)
     if not 0 < fraction <= 1:
         raise ValueError('Contact fraction must be in (0, 1]')
@@ -104,6 +105,9 @@ def run(data, output, seed=42, fraction=0.1, model_candidates=None, dataset_sha2
               'model': winner, 'seed': seed, 'schema_version': 1}
     joblib.dump(bundle, output/'model.joblib')
     (output/'report.json').write_text(json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False)+'\n')
+    if tracking_dir is not None:
+        from .tracking import log_training
+        log_training(report, bundle, models, output, tracking_dir, experiment)
     return report
 
 
@@ -126,6 +130,8 @@ def main():
     train.add_argument('--output', required=True, type=Path, help='New directory; existing paths are never overwritten')
     train.add_argument('--seed', type=int, default=42)
     train.add_argument('--contact-fraction', type=float, default=.1)
+    train.add_argument('--tracking-dir', type=Path, help='Opt-in local SQLite/artifact directory (no remote tracking)')
+    train.add_argument('--experiment', default='bank-churn')
     predict = commands.add_parser('score')
     predict.add_argument('--data', required=True, type=Path)
     predict.add_argument('--model', required=True, type=Path, help='Only load your own trusted joblib artifact')
@@ -133,7 +139,8 @@ def main():
     args = parser.parse_args()
     if args.command == 'train':
         report = run(pd.read_csv(args.data), args.output, args.seed, args.contact_fraction,
-                     dataset_sha256=hashlib.sha256(args.data.read_bytes()).hexdigest())
+                     dataset_sha256=hashlib.sha256(args.data.read_bytes()).hexdigest(),
+                     tracking_dir=args.tracking_dir, experiment=args.experiment)
         print(json.dumps({'selected_model': report['selected_model'], 'final_test': report['final_test']}, indent=2))
     else:
         if args.output.exists():

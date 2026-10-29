@@ -17,3 +17,8 @@ bank_churn_final_predictions.csv
 bank_churn_experiment_results.csv
 *.xlsx
 *.pptx
+mlruns/
+mlartifacts/
+*.db
+*.db-shm
+*.db-wal

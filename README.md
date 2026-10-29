@@ -99,3 +99,69 @@ Validation에서 선택한 F2 임계값은 약 0.1785입니다. 이 임계값 �
 - 원본 CSV·고객별 출력·모델·과거 제출 바이너리는 현재 추적에서 제외했습니다. **기존 공개 커밋에서 소급 삭제한 것은 아닙니다.** 로컬 파일은 보존했습니다.
 
 다음 개선 후보는 시간 기준 신규 데이터 검증, 반복 분할에서의 선택 안정성, 점수 보정, 캠페인 효과 데이터 기반 의사결정입니다. 우선은 현재 절차와 공개 결과를 재현할 수 있게 유지합니다.
+
+
+## 개인 고도화 2 — 로컬 MLflow 실험·모델 관리
+
+2026-10-29에 수업에서 다룬 MLflow Tracking·Model Registry 흐름을 연결했습니다. 기존 학습·평가가 끝난 뒤 기록을 시작하며, Tracking을 선택하지 않으면 기존 CLI 그대로 동작합니다. 이번 단계는 모델 관리이며 FastAPI 서빙·실제 배포를 의미하지 않습니다.
+
+```mermaid
+flowchart LR
+    T[학습·Validation 후보 비교] --> S[Validation 기준 모델·임계값 고정]
+    S --> F[최종 재학습·Test 평가]
+    F --> P[MLflow 최종 실행]
+    P --> C[후보별 하위 실행: Validation만]
+    P --> M[Pipeline·코드·환경·정책 저장]
+    M --> V[합성 입력으로 복원 일치 검사]
+    V --> R[로컬 Model Registry 등록]
+```
+
+### 설치와 실행
+
+기본 의존성과 별도로 MLflow 3.16.0을 설치합니다. API 키·클라우드 계정은 필요 없습니다.
+
+```bash
+python -m pip install -r requirements-tracking.txt
+python -m churn.train train --data data/demo.csv --output artifacts/demo-tracked --tracking-dir artifacts/mlflow --experiment bank-churn-demo
+python -m churn.tracking --run-dir artifacts/demo-tracked --tracking-dir artifacts/mlflow --experiment bank-churn-demo
+```
+
+`data/demo.csv`는 앞 절의 `churn.demo` 명령으로 생성합니다. 실데이터를 준비했다면 `--data`와 실험 이름을 변경합니다. 같은 출력 폴더를 재사용하지 않습니다. 노트북에서도 `CHURN_TRACKING_DIR=artifacts/mlflow`를 설정하면 같은 모듈을 통해 기록합니다.
+
+별도 터미널에서 프로젝트 루트를 열고 화면을 실행합니다.
+
+```bash
+source .venv/bin/activate
+export MLFLOW_DISABLE_TELEMETRY=true
+export MLFLOW_ENABLE_OTLP_EXPORTER=false
+export MLFLOW_DISABLE_AGENT_HINT=1
+mlflow ui --backend-store-uri sqlite:///artifacts/mlflow/tracking.db --host 127.0.0.1 --port 5055 --workers 1
+```
+
+브라우저 주소: `http://127.0.0.1:5055`. 종료는 해당 터미널에서 Ctrl+C입니다. Tracking 프로그램은 SQLite DB와 file 아티팩트 경로를 직접 지정하므로 UI 서버가 꺼져 있어도 기록·등록·복원 검사를 실행할 수 있습니다. 기존 원격 Tracking/Registry 환경변수는 이 로컬 실행에서 사용하지 않습니다.
+
+### 화면에서 확인할 것
+
+- **Experiments → bank-churn**: `selected-final` 상위 실행과 후보 5개의 하위 실행을 봅니다. `phase=candidate` 실행의 `validation_precision_at_budget`, `validation_average_precision`, `validation_roc_auc`를 비교합니다. 후보 실행에 Test 지표는 기록하지 않습니다.
+- **selected-final**: 데이터 SHA-256, seed, 분할 건수·방법, 선택 기준, F2 임계값, 최종 Test 지표와 `report.json`을 확인합니다.
+- **Models → BankChurnPipeline**: 선택된 Pipeline의 버전과 코드·환경 명세를 확인합니다. `deployment=not_deployed`이며 production/champion 별칭을 자동 부여하지 않습니다.
+- **decision_policy.json / 모델 metadata**: 임계값·연락 비율을 별도로 보존합니다. sklearn 모델의 기본 `predict()` 결과를 이 정책의 risk_flag로 혼동하지 않습니다. MLflow pyfunc flavor는 두 클래스의 `predict_proba`를 반환하도록 설정했습니다.
+
+### 저장·검증·보안 범위
+
+`artifacts/mlflow/tracking.db`에 실행·등록 메타데이터, 같은 폴더 아래 `artifacts/`에 Pipeline·애플리케이션 코드·환경·집계 결과를 저장합니다. 실행 폴더의 `mlflow.json`은 로컬 run ID와 고정 Registry 버전을 연결합니다. 이 파일과 MLflow DB·모델은 Git에 올리지 않습니다.
+
+원본 고객 행·개인별 점수·고객 ID·성씨를 로그하지 않고, autologging·input_example·원본 데이터셋 로깅도 사용하지 않습니다. 모델 signature는 실제 고객 대신 직접 생성한 합성 입력 8행으로 구성합니다. 원격 아티팩트 URI나 지정 Tracking 폴더 밖을 가리키는 기존 실험은 거부합니다. SDK와 UI의 사용량 telemetry는 끕니다.
+
+직접 작성한 전처리 클래스를 포함하므로 모델은 cloudpickle 형식으로 저장합니다. 기존 joblib과 마찬가지로 **본인이 생성한 신뢰할 수 있는 로컬 아티팩트만 로드**합니다. 이 버전의 MLflow 기본 skops 형식에서는 사용자 정의 전처리의 신뢰 타입 검토가 별도로 필요합니다. 이 앱은 신뢰할 수 없는 모델을 받는 업로드 기능을 제공하지 않습니다.
+
+합성 입력에서 원본 Pipeline, MLflow 아티팩트 복원본, 고정 Registry 버전 복원본의 점수가 atol=1e-12 안에서 일치해야 합니다. 첫 복원 검사가 실패하면 Registry 버전을 생성하지 않으며, 기록 도중 실패한 실행은 FAILED로 남습니다. 학습·평가 도중 실패를 실시간으로 추적하는 기능은 아직 없습니다.
+
+이번 실행의 공개 집계 검증: [reports/mlflow-verification.json](reports/mlflow-verification.json).
+
+- MLflow 설치 환경에서 **검사 12개 통과**, integration 검사 생략 0개. Tracking 의존성이 없으면 기본·경로 검사 9개만 실행하고 MLflow 통합 검사 3개는 생략합니다.
+- 교육 데이터 실험에서 후보 실행 5개 + 최종 실행 1개, 후보의 Test 지표 기록 0개를 확인했습니다. 기존 v2와 최종 Test 집계 지표도 일치했습니다.
+- 아티팩트·Registry 복원 및 별도 Python 프로세스 재검증의 최대 점수 차이는 **0.0**이었습니다. 합성 입력의 직렬화 일치 검사이며 미래 고객 성능을 증명하지 않습니다.
+- MLflow UI와 실험 목록 조회의 HTTP 200을 확인했습니다. MLflow 검증 환경은 로컬 macOS/ARM64, Python 3.14.7입니다. 기존 v2 학습 결과의 Python 3.11 환경과 구분합니다.
+
+참고: [MLflow Tracking](https://mlflow.org/docs/latest/ml/tracking/quickstart/), [sklearn 모델 저장](https://mlflow.org/docs/latest/api_reference/python_api/mlflow.sklearn.html), [Model Registry](https://mlflow.org/docs/latest/ml/model-registry/workflow/), [telemetry 설정](https://mlflow.org/docs/latest/community/usage-tracking/).
